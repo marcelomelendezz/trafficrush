@@ -4,20 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Nebulosa Rush</title>
-<link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
 :root {
   --space: #0a0520;
-  --nebula: #1a0a3a;
-  --energy: #00ddff;
   --gold: #ffd700;
-  --ship: #4488ff;
-  --enemy: #ff3366;
-  --bg: #05030a;
+  --energy: #00ddff;
 }
 * { margin:0; padding:0; box-sizing:border-box; touch-action:none; }
 body {
-  background:var(--bg);
+  background:#05030a;
   display:flex; flex-direction:column; align-items:center;
   min-height:100vh; overflow:hidden; user-select:none;
   font-family:'Boogaloo',cursive;
@@ -27,7 +22,7 @@ header {
   display:flex; align-items:center; justify-content:space-between;
   padding:8px 14px 6px;
   border-bottom:2px solid rgba(0,221,255,0.2);
-  flex-shrink:0;
+  flex-shrink:0; z-index:10;
 }
 .logo { font-size:1.5rem; letter-spacing:0.08em; color:var(--gold);
   text-shadow:2px 2px 0 rgba(0,0,0,0.5); line-height:1; }
@@ -40,58 +35,39 @@ header {
   letter-spacing:0.15em; color:rgba(0,221,255,0.4); display:block; }
 .hud-val { font-size:1.2rem; color:var(--gold);
   text-shadow:0 0 8px rgba(255,215,0,0.4); display:block; }
-#canvas-wrap { position:relative; flex-shrink:0; }
-canvas { display:block; }
 
-/* Overlay */
-#overlay { position:absolute; inset:0;
+#canvas-wrap { position:relative; flex:1; width:100%; max-width:420px; }
+canvas { display:block; width:100%; height:100%; background:#05030a; }
+
+#overlay {
+  position:absolute; inset:0;
   background:rgba(5,3,10,0.92); backdrop-filter:blur(5px);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  z-index:20; }
+  z-index:30; text-align:center;
+}
 #overlay.hidden { display:none; }
-.ov-icon { font-size:3rem; margin-bottom:8px;
-  filter:drop-shadow(0 0 12px rgba(0,221,255,0.5)); }
-.ov-title { font-size:2.5rem; letter-spacing:0.1em; color:var(--gold);
-  text-shadow:3px 3px 0 rgba(0,0,0,0.5); margin-bottom:2px; }
-.ov-sub { font-family:'Share Tech Mono',monospace; font-size:0.44rem;
-  letter-spacing:0.2em; color:rgba(0,221,255,0.4); margin-bottom:18px; }
-.ov-stats { display:none; gap:14px; margin-bottom:18px; }
-.ov-stats.show { display:flex; }
-.ov-stat { background:rgba(0,0,0,0.4); border:1px solid rgba(0,221,255,0.2);
-  padding:8px 16px; text-align:center; }
-.ov-stat-num { font-size:1.8rem; color:var(--gold);
-  text-shadow:0 0 10px rgba(255,215,0,0.4); display:block; }
-.ov-stat-label { font-family:'Share Tech Mono',monospace;
-  font-size:0.38rem; letter-spacing:0.12em; color:rgba(0,221,255,0.4); }
-.ov-btn { font-family:'Boogaloo',cursive; font-size:1.1rem; letter-spacing:0.12em;
-  background:var(--gold); border:none; color:#05030a;
-  padding:11px 30px; cursor:pointer;
-  box-shadow:3px 3px 0 rgba(0,0,0,0.4);
-  transition:all 0.1s; }
-.ov-btn:active { transform:translate(2px,2px); box-shadow:1px 1px 0 rgba(0,0,0,0.4); }
-.ov-hint { font-family:'Share Tech Mono',monospace; font-size:0.4rem;
-  letter-spacing:0.15em; color:rgba(100,100,120,0.8); margin-top:10px; }
 
-/* Mobile controls */
+.ov-title { font-size:2.8rem; color:var(--gold); letter-spacing:0.1em; margin-bottom:8px; }
+.ov-sub { font-family:'Share Tech Mono',monospace; font-size:0.9rem; color:rgba(0,221,255,0.6); margin-bottom:30px; }
+.ov-btn {
+  background:#ffd700; color:#05030a; border:none; padding:16px 50px;
+  font-size:1.3rem; font-weight:700; letter-spacing:0.1em; border-radius:8px;
+  box-shadow:0 4px 0 #b38a00; cursor:pointer; transition:all 0.1s;
+}
+.ov-btn:active { transform:translateY(3px); box-shadow:0 1px 0 #b38a00; }
+
 #controls {
-  width:100%; max-width:420px;
-  display:flex; align-items:center; justify-content:center;
-  padding:8px 14px 10px; gap:10px; flex-shrink:0;
+  width:100%; max-width:420px; background:#0a0520;
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 16px; gap:8px; flex-shrink:0; z-index:20;
 }
 .ctrl-btn {
-  font-size:1.4rem; font-family:'Boogaloo',cursive;
-  background:rgba(0,0,0,0.5);
-  border:2px solid rgba(0,221,255,0.3); color:var(--gold);
-  width:60px; height:50px; display:flex; align-items:center; justify-content:center;
-  cursor:pointer; -webkit-tap-highlight-color:transparent;
-  box-shadow:2px 2px 0 rgba(0,0,0,0.4); flex-shrink:0;
-  transition:background 0.08s;
+  width:58px; height:58px; border-radius:12px; font-size:1.8rem;
+  background:rgba(0,221,255,0.1); border:2px solid rgba(0,221,255,0.4);
+  color:#00ddff; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;
 }
-.ctrl-btn.pressed { background:rgba(0,221,255,0.2); border-color:var(--gold); }
-.ctrl-info { text-align:center; flex:1; }
-.ctrl-score { font-size:1.4rem; color:var(--gold); text-shadow:0 0 8px rgba(255,215,0,0.4); }
-.ctrl-level { font-family:'Share Tech Mono',monospace; font-size:0.4rem;
-  letter-spacing:0.15em; color:rgba(0,221,255,0.45); }
+.ctrl-btn:active { background:rgba(0,221,255,0.3); border-color:#00ddff; transform:scale(0.95); }
 </style>
 </head>
 <body>
@@ -108,134 +84,286 @@ canvas { display:block; }
 
 <div id="canvas-wrap">
   <canvas id="game"></canvas>
+  
+  <!-- OVERLAY DE INICIO -->
   <div id="overlay">
-    <div class="ov-icon">🚀</div>
-    <div class="ov-title" id="ov-title">NEBULOSA RUSH</div>
-    <div class="ov-sub"   id="ov-sub">STARLANE ARCADE · ESQUIVA Y CRUZA</div>
-    <div class="ov-stats" id="ov-stats">
-      <div class="ov-stat"><span class="ov-stat-num" id="ov-score">0</span><span class="ov-stat-label">ENERGÍA</span></div>
-      <div class="ov-stat"><span class="ov-stat-num" id="ov-crosses">0</span><span class="ov-stat-label">PORTALES</span></div>
-    </div>
-    <button class="ov-btn" onclick="startGame()">▶ DESPEGAR</button>
-    <div class="ov-hint">← → MOVER · ↑ ACELERAR · ↓ FRENAR</div>
+    <div class="ov-title">NEBULOSA RUSH</div>
+    <div class="ov-sub">STARLANE ARCADE · ESQUIVA Y CRUZA</div>
+    <button class="ov-btn" id="startBtn">▶ DESPEGAR</button>
   </div>
 </div>
 
+<!-- CONTROLES MÓVIL -->
 <div id="controls">
-  <button class="ctrl-btn" id="btn-left"
-    ontouchstart="pressKey('left')"  ontouchend="releaseKey('left')"
-    onmousedown="pressKey('left')"   onmouseup="releaseKey('left')" onmouseleave="releaseKey('left')">◀</button>
-  <button class="ctrl-btn" id="btn-up"
-    ontouchstart="pressKey('up')"    ontouchend="releaseKey('up')"
-    onmousedown="pressKey('up')"     onmouseup="releaseKey('up')"   onmouseleave="releaseKey('up')">▲</button>
-  <div class="ctrl-info">
-    <div class="ctrl-score" id="score-el">0</div>
-    <div class="ctrl-level" id="level-el">NEBULA 1</div>
+  <button class="ctrl-btn" id="btn-left">◀</button>
+  <div style="display:flex; flex-direction:column; gap:6px;">
+    <button class="ctrl-btn" id="btn-up">▲</button>
+    <button class="ctrl-btn" id="btn-down">▼</button>
   </div>
-  <button class="ctrl-btn" id="btn-down"
-    ontouchstart="pressKey('down')"  ontouchend="releaseKey('down')"
-    onmousedown="pressKey('down')"   onmouseup="releaseKey('down')" onmouseleave="releaseKey('down')">▼</button>
-  <button class="ctrl-btn" id="btn-right"
-    ontouchstart="pressKey('right')" ontouchend="releaseKey('right')"
-    onmousedown="pressKey('right')"  onmouseup="releaseKey('right')" onmouseleave="releaseKey('right')">▶</button>
+  <button class="ctrl-btn" id="btn-right">▶</button>
+  <button class="ctrl-btn" id="btn-fire" style="width:70px; height:70px; font-size:2rem; background:rgba(255,80,80,0.15); border-color:#ff5050; color:#ff5050;">●</button>
 </div>
 
 <script>
-// ════════════════════════════════════════════════════
-// CANVAS
-// ════════════════════════════════════════════════════
+// ==================== CÓDIGO DEL JUEGO ====================
 const canvas = document.getElementById('game');
-const ctx    = canvas.getContext('2d');
-const wrap   = document.getElementById('canvas-wrap');
+const ctx = canvas.getContext('2d');
 let W = 420, H = 420;
 
-function resize() {
-  W = Math.min(window.innerWidth, 420);
+function resizeCanvas() {
+  const container = document.getElementById('canvas-wrap');
+  W = Math.min(container.clientWidth, 420);
   H = W;
-  canvas.width  = W;
+  canvas.width = W;
   canvas.height = H;
-  wrap.style.width  = W + 'px';
-  wrap.style.height = H + 'px';
 }
-resize();
-window.addEventListener('resize', resize);
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas();
 
-let hiScore = parseInt(localStorage.getItem('nebularush_hi') || '0');
-document.getElementById('hi-el').textContent = hiScore;
-
-// ════════════════════════════════════════════════════
-// CONSTANTS — all relative to W/H
-// ════════════════════════════════════════════════════
-const ROAD_W   = () => W * 0.36;
-const CX       = () => W * 0.5;
-const CY       = () => H * 0.5;
-const LANE_W   = () => ROAD_W() / 3;
-
-const VRD_L   = () => CX() - ROAD_W()/2;
-const VRD_R   = () => CX() + ROAD_W()/2;
-const HRD_T   = () => CY() - ROAD_W()/2;
-const HRD_B   = () => CY() + ROAD_W()/2;
-
-const INT_L   = () => VRD_L();
-const INT_R   = () => VRD_R();
-const INT_T   = () => HRD_T();
-const INT_B   = () => HRD_B();
-
-// ════════════════════════════════════════════════════
-// STATE
-// ════════════════════════════════════════════════════
-let state = 'start';
-let score = 0, crosses = 0, lives = 3, level = 1;
-let frameCount = 0, animId = null;
-let trafficCars = [];
-let particles   = [];
+// Variables del juego
+let score = 0, lives = 3, level = 1;
+let player = { x: W/2, y: H*0.8, w: 28, h: 32, speed: 4 };
+let bullets = [], enemies = [], particles = [];
 let keys = {};
-let player = {};
-let scorePopups = [];
-let shakeTimer = 0;
-let invincible = 0;
-let dashTimer = 0;
-let crossCooldown = 0;
+let gameRunning = false;
+let lastTime = 0;
 
-// ════════════════════════════════════════════════════
-// SHIP COLORS (cosmic palette)
-// ════════════════════════════════════════════════════
-const SHIP_COLORS = [
-  {body:'#4488ff',shine:'#88ccff',shadow:'#112266',roof:'#2266cc'},
-  {body:'#ff3366',shine:'#ff6699',shadow:'#661122',roof:'#cc2255'},
-  {body:'#22cc88',shine:'#66ffaa',shadow:'#116633',roof:'#118844'},
-  {body:'#ffaa22',shine:'#ffdd66',shadow:'#664411',roof:'#cc7711'},
-  {body:'#cc88ff',shine:'#eebbff',shadow:'#441166',roof:'#7722aa'},
-  {body:'#00ccff',shine:'#66eeff',shadow:'#004466',roof:'#0088aa'},
-];
-
-// ════════════════════════════════════════════════════
-// PLAYER INIT
-// ════════════════════════════════════════════════════
-function initPlayer() {
-  const lw = LANE_W();
-  player = {
-    x:   CX() - lw*0.4,
-    y:   H * 0.82,
-    w:   lw * 0.62,
-    h:   lw * 0.95,
-    vx:  0,
-    vy:  0,
-    speed: W * 0.004,
-    color: SHIP_COLORS[0],
-    alive: true,
-    angle: 0,
-    crosses: 0,
-    engineRev: 0,
+// Controles táctiles
+function setupControls() {
+  const btns = {
+    'btn-left': 'left', 'btn-right': 'right',
+    'btn-up': 'up', 'btn-down': 'down',
+    'btn-fire': 'fire'
   };
+
+  Object.keys(btns).forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+
+    const action = btns[id];
+
+    const press = (e) => {
+      e.preventDefault();
+      keys[action] = true;
+      if (action === 'fire') shoot();
+    };
+    const release = (e) => {
+      e.preventDefault();
+      keys[action] = false;
+    };
+
+    btn.addEventListener('mousedown', press);
+    btn.addEventListener('mouseup', release);
+    btn.addEventListener('mouseleave', release);
+    btn.addEventListener('touchstart', press, {passive:false});
+    btn.addEventListener('touchend', release, {passive:false});
+  });
+}
+setupControls();
+
+// Teclado
+document.addEventListener('keydown', e => {
+  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
+  if (e.key === 'ArrowLeft') keys.left = true;
+  if (e.key === 'ArrowRight') keys.right = true;
+  if (e.key === 'ArrowUp') keys.up = true;
+  if (e.key === 'ArrowDown') keys.down = true;
+  if (e.key === ' ') shoot();
+});
+document.addEventListener('keyup', e => {
+  if (e.key === 'ArrowLeft') keys.left = false;
+  if (e.key === 'ArrowRight') keys.right = false;
+  if (e.key === 'ArrowUp') keys.up = false;
+  if (e.key === 'ArrowDown') keys.down = false;
+});
+
+// Disparo
+function shoot() {
+  if (!gameRunning) return;
+  bullets.push({
+    x: player.x + player.w/2,
+    y: player.y,
+    vy: -8
+  });
 }
 
-// ════════════════════════════════════════════════════
-// LEVEL CONFIG
-// ════════════════════════════════════════════════════
-function getLevelConfig(lvl) {
-  return {
-    hSpeed: W * (0.0018 + lvl * 0.0006),
-    vSpeed: H * (0.0016 + lvl * 0.0005),
-    hDensity: Math.min(0.008 + lvl*0.001, 0.018),
-    vDensity: Math.min(0.005
+// Iniciar juego
+function startGame() {
+  document.getElementById('overlay').classList.add('hidden');
+  resetGame();
+  gameRunning = true;
+  requestAnimationFrame(gameLoop);
+}
+
+document.getElementById('startBtn').addEventListener('click', startGame);
+
+// Reiniciar juego
+function resetGame() {
+  score = 0;
+  lives = 3;
+  level = 1;
+  player.x = W/2 - player.w/2;
+  player.y = H * 0.82;
+  bullets = [];
+  enemies = [];
+  particles = [];
+  updateHUD();
+}
+
+// Bucle principal
+function gameLoop(timestamp = 0) {
+  if (!gameRunning) return;
+
+  update();
+  draw();
+
+  requestAnimationFrame(gameLoop);
+}
+
+function update() {
+  // Movimiento del jugador
+  if (keys.left) player.x -= player.speed;
+  if (keys.right) player.x += player.speed;
+  if (keys.up) player.y -= player.speed * 0.7;
+  if (keys.down) player.y += player.speed * 0.7;
+
+  // Límites
+  player.x = Math.max(0, Math.min(W - player.w, player.x));
+  player.y = Math.max(0, Math.min(H - player.h, player.y));
+
+  // Balas
+  for (let i = bullets.length - 1; i >= 0; i--) {
+    bullets[i].y += bullets[i].vy;
+    if (bullets[i].y < 0) bullets.splice(i, 1);
+  }
+
+  // Enemigos simples (asteroides)
+  if (Math.random() < 0.04) {
+    enemies.push({
+      x: Math.random() * W,
+      y: -30,
+      w: 24, h: 24,
+      vy: 2 + Math.random() * 2
+    });
+  }
+
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    enemies[i].y += enemies[i].vy;
+
+    // Colisión con jugador
+    if (rectCollision(player, enemies[i])) {
+      lives--;
+      updateHUD();
+      createExplosion(enemies[i].x, enemies[i].y);
+      enemies.splice(i, 1);
+      if (lives <= 0) gameOver();
+      continue;
+    }
+
+    // Fuera de pantalla
+    if (enemies[i].y > H) enemies.splice(i, 1);
+  }
+
+  // Colisión balas vs enemigos
+  for (let b = bullets.length - 1; b >= 0; b--) {
+    for (let e = enemies.length - 1; e >= 0; e--) {
+      if (rectCollision(bullets[b], enemies[e])) {
+        score += 10;
+        updateHUD();
+        createExplosion(enemies[e].x, enemies[e].y);
+        bullets.splice(b, 1);
+        enemies.splice(e, 1);
+        break;
+      }
+    }
+  }
+}
+
+function rectCollision(a, b) {
+  return !(a.x + a.w < b.x || a.x > b.x + b.w ||
+           a.y + a.h < b.y || a.y > b.y + b.h);
+}
+
+function createExplosion(x, y) {
+  for (let i = 0; i < 12; i++) {
+    particles.push({
+      x, y,
+      vx: (Math.random() - 0.5) * 6,
+      vy: (Math.random() - 0.5) * 6,
+      life: 25
+    });
+  }
+}
+
+function updateHUD() {
+  document.getElementById('hi-el').textContent = score;
+  document.getElementById('lives-el').innerHTML = '❤'.repeat(Math.max(0, lives));
+}
+
+function draw() {
+  ctx.fillStyle = '#05030a';
+  ctx.fillRect(0, 0, W, H);
+
+  // Estrellas de fondo
+  ctx.fillStyle = '#ffffff';
+  for (let i = 0; i < 60; i++) {
+    const x = (i * 37) % W;
+    const y = (i * 53) % H;
+    ctx.fillRect(x, y, 1.5, 1.5);
+  }
+
+  // Jugador (nave)
+  ctx.fillStyle = '#4488ff';
+  ctx.fillRect(player.x, player.y, player.w, player.h);
+  ctx.fillStyle = '#66aaff';
+  ctx.fillRect(player.x + 6, player.y - 8, player.w - 12, 10);
+
+  // Balas
+  ctx.fillStyle = '#00ddff';
+  bullets.forEach(b => {
+    ctx.fillRect(b.x - 2, b.y, 4, 12);
+  });
+
+  // Enemigos (asteroides)
+  ctx.fillStyle = '#ff5050';
+  enemies.forEach(e => {
+    ctx.beginPath();
+    ctx.arc(e.x + e.w/2, e.y + e.h/2, e.w/2, 0, Math.PI * 2);
+    ctx.fill();
+  });
+
+  // Partículas
+  ctx.fillStyle = '#ffd700';
+  particles.forEach((p, i) => {
+    ctx.globalAlpha = p.life / 25;
+    ctx.fillRect(p.x, p.y, 3, 3);
+    p.x += p.vx;
+    p.y += p.vy;
+    p.life--;
+    if (p.life <= 0) particles.splice(i, 1);
+  });
+  ctx.globalAlpha = 1;
+}
+
+function gameOver() {
+  gameRunning = false;
+  alert('¡Impacto! Has perdido todos los escudos.\nPuntuación: ' + score);
+  document.getElementById('overlay').classList.remove('hidden');
+  document.getElementById('overlay').innerHTML = `
+    <div class="ov-title">¡IMPACTO!</div>
+    <div class="ov-sub">La nebulosa te venció</div>
+    <button class="ov-btn" onclick="location.reload()">REINTENTAR</button>
+  `;
+}
+
+// Iniciar con tecla Enter también
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && document.getElementById('overlay').style.display !== 'none') {
+    startGame();
+  }
+});
+
+console.log('%c[Nebulosa Rush] Juego cargado correctamente. Listo para jugar.', 'color:#00ddff');
+</script>
+</body>
+</html>
