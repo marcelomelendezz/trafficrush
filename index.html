@@ -3,367 +3,813 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Nebulosa Rush</title>
+<title>Circula el Dato</title>
 <style>
 :root {
-  --space: #0a0520;
-  --gold: #ffd700;
-  --energy: #00ddff;
+  --bg:     #04080c;
+  --board:  #081018;
+  --track:  #0b1620;
+  --trace:  #00e0ff;
+  --pad:    #17303a;
+  --ok:     #4dff9e;
+  --warn:   #ff2fd6;
 }
 * { margin:0; padding:0; box-sizing:border-box; touch-action:none; }
 body {
-  background:#05030a;
+  background:var(--bg);
   display:flex; flex-direction:column; align-items:center;
   min-height:100vh; overflow:hidden; user-select:none;
-  font-family:'Boogaloo',cursive;
+  font-family:'Courier New', monospace; font-weight:700;
 }
 header {
   width:100%; max-width:420px;
   display:flex; align-items:center; justify-content:space-between;
   padding:8px 14px 6px;
-  border-bottom:2px solid rgba(0,221,255,0.2);
-  flex-shrink:0; z-index:10;
+  border-bottom:2px solid rgba(0,224,255,0.2);
+  flex-shrink:0;
 }
-.logo { font-size:1.5rem; letter-spacing:0.08em; color:var(--gold);
+.logo { font-size:clamp(1.05rem,5.5vw,1.5rem); letter-spacing:0.06em; color:var(--trace);
   text-shadow:2px 2px 0 rgba(0,0,0,0.5); line-height:1; }
-.logo-sub { font-family:'Share Tech Mono',monospace; font-size:0.38rem;
-  letter-spacing:0.2em; color:rgba(0,221,255,0.4); display:block; }
+.logo-sub { font-size:0.36rem;
+  letter-spacing:0.18em; color:rgba(0,224,255,0.4); display:block; }
 .hud { display:flex; gap:10px; }
 .hud-box { text-align:center; background:rgba(0,0,0,0.3);
-  border:1px solid rgba(0,221,255,0.2); padding:3px 10px; }
-.hud-label { font-family:'Share Tech Mono',monospace; font-size:0.35rem;
-  letter-spacing:0.15em; color:rgba(0,221,255,0.4); display:block; }
-.hud-val { font-size:1.2rem; color:var(--gold);
-  text-shadow:0 0 8px rgba(255,215,0,0.4); display:block; }
+  border:1px solid rgba(0,224,255,0.2); padding:3px 10px; }
+.hud-label { font-size:0.35rem;
+  letter-spacing:0.15em; color:rgba(0,224,255,0.4); display:block; }
+.hud-val { font-size:1.15rem; color:var(--trace);
+  text-shadow:0 0 8px rgba(0,224,255,0.4); display:block; }
+#canvas-wrap { position:relative; flex-shrink:0; }
+canvas { display:block; }
 
-#canvas-wrap { position:relative; flex:1; width:100%; max-width:420px; }
-canvas { display:block; width:100%; height:100%; background:#05030a; }
-
-#overlay {
-  position:absolute; inset:0;
-  background:rgba(5,3,10,0.92); backdrop-filter:blur(5px);
+/* Overlay */
+#overlay { position:absolute; inset:0;
+  background:rgba(4,10,14,0.92); backdrop-filter:blur(5px);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  z-index:30; text-align:center;
-}
+  z-index:20; }
 #overlay.hidden { display:none; }
+.ov-icon { font-size:3rem; margin-bottom:8px;
+  filter:drop-shadow(0 0 12px rgba(0,224,255,0.5)); }
+.ov-title { font-size:clamp(1.5rem,8vw,2.4rem); letter-spacing:0.08em; color:var(--trace);
+  text-shadow:3px 3px 0 rgba(0,0,0,0.5); margin-bottom:2px; text-align:center; max-width:92%; }
+.ov-sub { font-size:0.42rem;
+  letter-spacing:0.18em; color:rgba(0,224,255,0.4); margin-bottom:18px; text-align:center; }
+.ov-stats { display:none; gap:14px; margin-bottom:18px; }
+.ov-stats.show { display:flex; }
+.ov-stat { background:rgba(0,0,0,0.4); border:1px solid rgba(0,224,255,0.2);
+  padding:8px 16px; text-align:center; }
+.ov-stat-num { font-size:1.8rem; color:var(--trace);
+  text-shadow:0 0 10px rgba(0,224,255,0.4); display:block; }
+.ov-stat-label { font-size:0.36rem; letter-spacing:0.1em; color:rgba(0,224,255,0.4); }
+.ov-btn { font-family:inherit; font-size:1.05rem; letter-spacing:0.1em;
+  background:var(--trace); border:none; color:#04080c;
+  padding:11px 30px; cursor:pointer;
+  box-shadow:3px 3px 0 rgba(0,0,0,0.4);
+  transition:all 0.1s; font-weight:700; }
+.ov-btn:active { transform:translate(2px,2px); box-shadow:1px 1px 0 rgba(0,0,0,0.4); }
+.ov-hint { font-size:0.4rem;
+  letter-spacing:0.14em; color:rgba(150,170,180,0.75); margin-top:10px; }
 
-.ov-title { font-size:2.8rem; color:var(--gold); letter-spacing:0.1em; margin-bottom:8px; }
-.ov-sub { font-family:'Share Tech Mono',monospace; font-size:0.9rem; color:rgba(0,221,255,0.6); margin-bottom:30px; }
-.ov-btn {
-  background:#ffd700; color:#05030a; border:none; padding:16px 50px;
-  font-size:1.3rem; font-weight:700; letter-spacing:0.1em; border-radius:8px;
-  box-shadow:0 4px 0 #b38a00; cursor:pointer; transition:all 0.1s;
-}
-.ov-btn:active { transform:translateY(3px); box-shadow:0 1px 0 #b38a00; }
-
+/* Mobile controls */
 #controls {
-  width:100%; max-width:420px; background:#0a0520;
-  display:flex; justify-content:space-between; align-items:center;
-  padding:10px 16px; gap:8px; flex-shrink:0; z-index:20;
+  width:100%; max-width:420px;
+  display:flex; align-items:center; justify-content:center;
+  padding:8px 14px 10px; gap:10px; flex-shrink:0;
 }
 .ctrl-btn {
-  width:58px; height:58px; border-radius:12px; font-size:1.8rem;
-  background:rgba(0,221,255,0.1); border:2px solid rgba(0,221,255,0.4);
-  color:#00ddff; display:flex; align-items:center; justify-content:center;
-  cursor:pointer; user-select:none; -webkit-tap-highlight-color:transparent;
+  font-size:1.4rem; font-family:inherit;
+  background:rgba(0,0,0,0.5);
+  border:2px solid rgba(0,224,255,0.3); color:var(--trace);
+  width:60px; height:50px; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+  box-shadow:2px 2px 0 rgba(0,0,0,0.4); flex-shrink:0;
+  transition:background 0.08s;
 }
-.ctrl-btn:active { background:rgba(0,221,255,0.3); border-color:#00ddff; transform:scale(0.95); }
+.ctrl-btn.pressed { background:rgba(0,224,255,0.2); border-color:var(--trace); }
+.ctrl-info { text-align:center; flex:1; }
+.ctrl-score { font-size:1.4rem; color:var(--trace); text-shadow:0 0 8px rgba(0,224,255,0.4); }
+.ctrl-level { font-size:0.4rem;
+  letter-spacing:0.14em; color:rgba(0,224,255,0.45); }
 </style>
 </head>
 <body>
 
 <header>
-  <div class="logo">NEBULOSA RUSH
-    <span class="logo-sub">STARLANE ARCADE · CRUZA LA NEBULOSA</span>
+  <div class="logo">CIRCULA EL DATO
+    <span class="logo-sub">CIRCUITO DIGITAL · TRANSMITE Y CRUZA</span>
   </div>
   <div class="hud">
-    <div class="hud-box"><span class="hud-label">RÉCORD</span><span class="hud-val" id="hi-el">0</span></div>
-    <div class="hud-box"><span class="hud-label">ESCUDOS</span><span class="hud-val" id="lives-el">❤❤❤</span></div>
+    <div class="hud-box"><span class="hud-label">MEJOR</span><span class="hud-val" id="hi-el">0</span></div>
+    <div class="hud-box"><span class="hud-label">CARGA</span><span class="hud-val" id="lives-el">███</span></div>
   </div>
 </header>
 
 <div id="canvas-wrap">
   <canvas id="game"></canvas>
-  
-  <!-- OVERLAY DE INICIO -->
   <div id="overlay">
-    <div class="ov-title">NEBULOSA RUSH</div>
-    <div class="ov-sub">STARLANE ARCADE · ESQUIVA Y CRUZA</div>
-    <button class="ov-btn" id="startBtn">▶ DESPEGAR</button>
+    <div class="ov-icon">⚡</div>
+    <div class="ov-title" id="ov-title">CIRCULA EL DATO</div>
+    <div class="ov-sub"   id="ov-sub">CIRCUITO DIGITAL · ESQUIVA Y TRANSMITE</div>
+    <div class="ov-stats" id="ov-stats">
+      <div class="ov-stat"><span class="ov-stat-num" id="ov-score">0</span><span class="ov-stat-label">DATOS</span></div>
+      <div class="ov-stat"><span class="ov-stat-num" id="ov-crosses">0</span><span class="ov-stat-label">TRANSMISIONES</span></div>
+    </div>
+    <button class="ov-btn" onclick="startGame()">▶ ENERGIZAR</button>
+    <div class="ov-hint">← → MOVER · ↑ ACELERAR · ↓ FRENAR</div>
   </div>
 </div>
 
-<!-- CONTROLES MÓVIL -->
 <div id="controls">
-  <button class="ctrl-btn" id="btn-left">◀</button>
-  <div style="display:flex; flex-direction:column; gap:6px;">
-    <button class="ctrl-btn" id="btn-up">▲</button>
-    <button class="ctrl-btn" id="btn-down">▼</button>
+  <button class="ctrl-btn" id="btn-left"
+    ontouchstart="pressKey('left')"  ontouchend="releaseKey('left')"
+    onmousedown="pressKey('left')"   onmouseup="releaseKey('left')" onmouseleave="releaseKey('left')">◀</button>
+  <button class="ctrl-btn" id="btn-up"
+    ontouchstart="pressKey('up')"    ontouchend="releaseKey('up')"
+    onmousedown="pressKey('up')"     onmouseup="releaseKey('up')"   onmouseleave="releaseKey('up')">▲</button>
+  <div class="ctrl-info">
+    <div class="ctrl-score" id="score-el">0</div>
+    <div class="ctrl-level" id="level-el">CICLO 1</div>
   </div>
-  <button class="ctrl-btn" id="btn-right">▶</button>
-  <button class="ctrl-btn" id="btn-fire" style="width:70px; height:70px; font-size:2rem; background:rgba(255,80,80,0.15); border-color:#ff5050; color:#ff5050;">●</button>
+  <button class="ctrl-btn" id="btn-down"
+    ontouchstart="pressKey('down')"  ontouchend="releaseKey('down')"
+    onmousedown="pressKey('down')"   onmouseup="releaseKey('down')" onmouseleave="releaseKey('down')">▼</button>
+  <button class="ctrl-btn" id="btn-right"
+    ontouchstart="pressKey('right')" ontouchend="releaseKey('right')"
+    onmousedown="pressKey('right')"  onmouseup="releaseKey('right')" onmouseleave="releaseKey('right')">▶</button>
 </div>
 
 <script>
-// ==================== CÓDIGO DEL JUEGO ====================
+// ════════════════════════════════════════════════════
+// CANVAS
+// ════════════════════════════════════════════════════
 const canvas = document.getElementById('game');
-const ctx = canvas.getContext('2d');
+const ctx    = canvas.getContext('2d');
+const wrap   = document.getElementById('canvas-wrap');
 let W = 420, H = 420;
 
-function resizeCanvas() {
-  const container = document.getElementById('canvas-wrap');
-  W = Math.min(container.clientWidth, 420);
-  H = W;
-  canvas.width = W;
+function resize() {
+  W = Math.min(window.innerWidth, 420);
+  H = W; // cuadrado
+  canvas.width  = W;
   canvas.height = H;
+  wrap.style.width  = W + 'px';
+  wrap.style.height = H + 'px';
 }
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+resize();
+window.addEventListener('resize', resize);
 
-// Variables del juego
-let score = 0, lives = 3, level = 1;
-let player = { x: W/2, y: H*0.8, w: 28, h: 32, speed: 4 };
-let bullets = [], enemies = [], particles = [];
+let hiScore = parseInt(localStorage.getItem('cd_hi') || '0');
+document.getElementById('hi-el').textContent = hiScore;
+
+// ════════════════════════════════════════════════════
+// CONSTANTES — todas relativas a W/H
+// ════════════════════════════════════════════════════
+// Layout de la intersección: 4 buses de datos que se cruzan en el centro
+// Buses: arriba, abajo (vertical), izquierda, derecha (horizontal)
+// La chispa aparece abajo y viaja hacia ARRIBA a través de la intersección
+
+const TRACK_W  = () => W * 0.36;   // ancho de cada bus/pista
+const CX       = () => W * 0.5;    // centro X
+const CY       = () => H * 0.5;    // centro Y
+const LANE_W   = () => TRACK_W() / 3; // 3 carriles por bus
+
+// Límites del bus vertical (tráfico de datos arriba-abajo)
+const VBUS_L  = () => CX() - TRACK_W()/2;
+const VBUS_R  = () => CX() + TRACK_W()/2;
+
+// Límites del bus horizontal (tráfico de datos izquierda-derecha)
+const HBUS_T  = () => CY() - TRACK_W()/2;
+const HBUS_B  = () => CY() + TRACK_W()/2;
+
+// Caja de la intersección (unión de buses)
+const JCT_L   = () => VBUS_L();
+const JCT_R   = () => VBUS_R();
+const JCT_T   = () => HBUS_T();
+const JCT_B   = () => HBUS_B();
+
+// ════════════════════════════════════════════════════
+// ESTADO
+// ════════════════════════════════════════════════════
+let state = 'start';
+let score = 0, transmissions = 0, charges = 3, cycle = 1;
+let frameCount = 0, animId = null;
+let dataPackets = [];
+let particles   = [];
 let keys = {};
-let gameRunning = false;
-let lastTime = 0;
+let spark = {};
+let scorePopups = [];
+let shakeTimer = 0;
+let invincible = 0;
+let surgeTimer = 0;
+let transmitCooldown = 0;
 
-// Controles táctiles
-function setupControls() {
-  const btns = {
-    'btn-left': 'left', 'btn-right': 'right',
-    'btn-up': 'up', 'btn-down': 'down',
-    'btn-fire': 'fire'
+// ════════════════════════════════════════════════════
+// COLORES DE PAQUETES (paleta neón)
+// ════════════════════════════════════════════════════
+const PACKET_COLORS = [
+  {body:'#00e0ff',shine:'#80f0ff',shadow:'#006080',roof:'#00a0c0'},
+  {body:'#ff2fd6',shine:'#ff80ea',shadow:'#800060',roof:'#c020a0'},
+  {body:'#4dff9e',shine:'#a0ffce',shadow:'#106030',roof:'#20a060'},
+  {body:'#ffb347',shine:'#ffd9a0',shadow:'#805010',roof:'#c08020'},
+  {body:'#e0e0e0',shine:'#ffffff',shadow:'#909090',roof:'#c0c0c0'},
+  {body:'#a06bff',shine:'#d0b0ff',shadow:'#402080',roof:'#7040c0'},
+  {body:'#20c0c0',shine:'#50f0f0',shadow:'#108080',roof:'#10a0a0'},
+  {body:'#ff6640',shine:'#ffa080',shadow:'#802010',roof:'#c04020'},
+];
+
+// ════════════════════════════════════════════════════
+// INICIALIZACIÓN DE LA CHISPA
+// ════════════════════════════════════════════════════
+function initSpark() {
+  const lw = LANE_W();
+  spark = {
+    x:   CX() - lw*0.4,        // carril derecho del bus vertical (subiendo)
+    y:   H * 0.82,
+    w:   lw * 0.62,
+    h:   lw * 0.95,
+    vx:  0,
+    vy:  0,
+    speed: W * 0.004,
+    color: PACKET_COLORS[0],    // chispa cian
+    alive: true,
+    angle: 0,                   // inclinación visual
+    pulsePhase: 0,
   };
-
-  Object.keys(btns).forEach(id => {
-    const btn = document.getElementById(id);
-    if (!btn) return;
-
-    const action = btns[id];
-
-    const press = (e) => {
-      e.preventDefault();
-      keys[action] = true;
-      if (action === 'fire') shoot();
-    };
-    const release = (e) => {
-      e.preventDefault();
-      keys[action] = false;
-    };
-
-    btn.addEventListener('mousedown', press);
-    btn.addEventListener('mouseup', release);
-    btn.addEventListener('mouseleave', release);
-    btn.addEventListener('touchstart', press, {passive:false});
-    btn.addEventListener('touchend', release, {passive:false});
-  });
-}
-setupControls();
-
-// Teclado
-document.addEventListener('keydown', e => {
-  if (['ArrowLeft','ArrowRight','ArrowUp','ArrowDown',' '].includes(e.key)) e.preventDefault();
-  if (e.key === 'ArrowLeft') keys.left = true;
-  if (e.key === 'ArrowRight') keys.right = true;
-  if (e.key === 'ArrowUp') keys.up = true;
-  if (e.key === 'ArrowDown') keys.down = true;
-  if (e.key === ' ') shoot();
-});
-document.addEventListener('keyup', e => {
-  if (e.key === 'ArrowLeft') keys.left = false;
-  if (e.key === 'ArrowRight') keys.right = false;
-  if (e.key === 'ArrowUp') keys.up = false;
-  if (e.key === 'ArrowDown') keys.down = false;
-});
-
-// Disparo
-function shoot() {
-  if (!gameRunning) return;
-  bullets.push({
-    x: player.x + player.w/2,
-    y: player.y,
-    vy: -8
-  });
 }
 
-// Iniciar juego
-function startGame() {
-  document.getElementById('overlay').classList.add('hidden');
-  resetGame();
-  gameRunning = true;
-  requestAnimationFrame(gameLoop);
+// ════════════════════════════════════════════════════
+// CONFIG DE APARICIÓN DE PAQUETES POR CICLO
+// ════════════════════════════════════════════════════
+function getCycleConfig(cyc) {
+  return {
+    hSpeed: W * (0.0018 + cyc * 0.0006),
+    vSpeed: H * (0.0016 + cyc * 0.0005),
+    hDensity: Math.min(0.008 + cyc*0.001, 0.018),
+    vDensity: Math.min(0.005 + cyc*0.0008, 0.014),
+    hasProcess: cyc >= 3,
+    hasSignal:  cyc >= 5,
+  };
 }
 
-document.getElementById('startBtn').addEventListener('click', startGame);
+// ════════════════════════════════════════════════════
+// APARICIÓN DE PAQUETES
+// ════════════════════════════════════════════════════
+function spawnPackets() {
+  const cfg = getCycleConfig(cycle);
+  const lw  = LANE_W();
 
-// Reiniciar juego
-function resetGame() {
-  score = 0;
-  lives = 3;
-  level = 1;
-  player.x = W/2 - player.w/2;
-  player.y = H * 0.82;
-  bullets = [];
-  enemies = [];
-  particles = [];
-  updateHUD();
-}
-
-// Bucle principal
-function gameLoop(timestamp = 0) {
-  if (!gameRunning) return;
-
-  update();
-  draw();
-
-  requestAnimationFrame(gameLoop);
-}
-
-function update() {
-  // Movimiento del jugador
-  if (keys.left) player.x -= player.speed;
-  if (keys.right) player.x += player.speed;
-  if (keys.up) player.y -= player.speed * 0.7;
-  if (keys.down) player.y += player.speed * 0.7;
-
-  // Límites
-  player.x = Math.max(0, Math.min(W - player.w, player.x));
-  player.y = Math.max(0, Math.min(H - player.h, player.y));
-
-  // Balas
-  for (let i = bullets.length - 1; i >= 0; i--) {
-    bullets[i].y += bullets[i].vy;
-    if (bullets[i].y < 0) bullets.splice(i, 1);
-  }
-
-  // Enemigos simples (asteroides)
-  if (Math.random() < 0.04) {
-    enemies.push({
-      x: Math.random() * W,
-      y: -30,
-      w: 24, h: 24,
-      vy: 2 + Math.random() * 2
+  // Tráfico horizontal — carril superior va IZQUIERDA→DERECHA
+  // Tráfico horizontal — carril inferior va DERECHA→IZQUIERDA
+  if (Math.random() < cfg.hDensity) {
+    const fromRight = Math.random() > 0.5;
+    const lane = fromRight ? 0 : 1;
+    const ty   = HBUS_T() + lw*(0.1 + lane*0.95);
+    const isProcess = cfg.hasProcess && Math.random() > 0.75;
+    const cw = lw * (isProcess ? 0.72 : 0.62);
+    const ch = lw * (isProcess ? 1.5  : 0.95);
+    const spd = cfg.hSpeed * (isProcess ? 0.65 : 1) * (0.8+Math.random()*0.4);
+    const col = PACKET_COLORS[Math.floor(Math.random()*PACKET_COLORS.length)];
+    dataPackets.push({
+      x:    fromRight ? W + cw : -cw,
+      y:    ty,
+      w: cw, h: ch,
+      vx:   fromRight ? -spd : spd,
+      vy:   0,
+      dir:  'h',
+      isProcess,
+      color: col,
+      alive: true,
+      angle: fromRight ? Math.PI : 0,
     });
   }
 
-  for (let i = enemies.length - 1; i >= 0; i--) {
-    enemies[i].y += enemies[i].vy;
-
-    // Colisión con jugador
-    if (rectCollision(player, enemies[i])) {
-      lives--;
-      updateHUD();
-      createExplosion(enemies[i].x, enemies[i].y);
-      enemies.splice(i, 1);
-      if (lives <= 0) gameOver();
-      continue;
-    }
-
-    // Fuera de pantalla
-    if (enemies[i].y > H) enemies.splice(i, 1);
+  // Tráfico vertical entrante — va hacia abajo (opuesto a la chispa)
+  if (Math.random() < cfg.vDensity) {
+    const leftLane = Math.random() > 0.5;
+    const tx = VBUS_L() + lw*(leftLane ? 0.1 : 1.05);
+    const isSignal = cfg.hasSignal && Math.random() > 0.82;
+    const cw = lw * (isSignal ? 0.28 : 0.62);
+    const ch = lw * (isSignal ? 0.6  : 0.95);
+    const spd = cfg.vSpeed * (isSignal ? 1.4 : 1) * (0.8+Math.random()*0.4);
+    const col = isSignal ? {body:'#eeeeee',shine:'#ffffff',shadow:'#999999',roof:'#cccccc'} :
+                           PACKET_COLORS[Math.floor(Math.random()*PACKET_COLORS.length)];
+    dataPackets.push({
+      x:    tx,
+      y:    -ch,
+      w: cw, h: ch,
+      vx:   0,
+      vy:   spd,
+      dir:  'v',
+      isSignal,
+      color: col,
+      alive: true,
+      angle: Math.PI, // orientado hacia abajo
+    });
   }
+}
 
-  // Colisión balas vs enemigos
-  for (let b = bullets.length - 1; b >= 0; b--) {
-    for (let e = enemies.length - 1; e >= 0; e--) {
-      if (rectCollision(bullets[b], enemies[e])) {
-        score += 10;
-        updateHUD();
-        createExplosion(enemies[e].x, enemies[e].y);
-        bullets.splice(b, 1);
-        enemies.splice(e, 1);
-        break;
+// ════════════════════════════════════════════════════
+// ACTUALIZACIÓN
+// ════════════════════════════════════════════════════
+function update() {
+  if (state !== 'playing') return;
+  frameCount++;
+  if (shakeTimer > 0) shakeTimer--;
+  if (invincible  > 0) invincible--;
+  if (surgeTimer  > 0) surgeTimer--;
+  if (transmitCooldown > 0) transmitCooldown--;
+
+  const spd = spark.speed * (1 + cycle * 0.08);
+
+  // ── MOVIMIENTO DE LA CHISPA — navegación por los 4 buses
+  if (spark.alive) {
+    const vl=VBUS_L(), vr=VBUS_R(), ht=HBUS_T(), hb=HBUS_B();
+    const pw=spark.w, ph=spark.h;
+    const pcx = spark.x + pw/2;
+    const pcy = spark.y + ph/2;
+    const onVert  = pcx >= vl && pcx <= vr;
+    const onHoriz = pcy >= ht && pcy <= hb;
+
+    if (onHoriz && !onVert) {
+      // Bus horizontal: izquierda/derecha avanza, arriba/abajo cambia de carril
+      if (keys.left)       { spark.vx = -spd*1.3; surgeTimer=4; }
+      else if (keys.right) { spark.vx =  spd*1.3; surgeTimer=4; }
+      else                    spark.vx *= 0.75;
+      if (keys.up)         spark.vy = -spd*0.6;
+      else if (keys.down)  spark.vy =  spd*0.6;
+      else                 spark.vy *= 0.55;
+      if (Math.abs(spark.vx) > 0.3)
+        spark.angle = spark.vx > 0 ? Math.PI/2 : -Math.PI/2;
+
+    } else if (onVert && !onHoriz) {
+      // Bus vertical: arriba/abajo avanza, izquierda/derecha cambia de carril
+      if (keys.up)         { spark.vy = -spd*1.4; surgeTimer=6; }
+      else if (keys.down)  spark.vy =  spd*0.5;
+      else                   spark.vy = -spd*0.75;
+      if (keys.left)       spark.vx = -spd*0.65;
+      else if (keys.right) spark.vx =  spd*0.65;
+      else                 spark.vx *= 0.55;
+      spark.angle = 0;
+
+    } else {
+      // Intersección: movimiento libre
+      if (keys.up)         spark.vy = -spd*1.3;
+      else if (keys.down)  spark.vy =  spd*1.3;
+      else                 spark.vy *= 0.82;
+      if (keys.left)       spark.vx = -spd*1.3;
+      else if (keys.right) spark.vx =  spd*1.3;
+      else                 spark.vx *= 0.82;
+      const mag = Math.abs(spark.vx)+Math.abs(spark.vy);
+      if (mag > 0.5) {
+        const tgt = Math.atan2(spark.vx, -spark.vy);
+        let da = tgt - spark.angle;
+        while (da >  Math.PI) da -= Math.PI*2;
+        while (da < -Math.PI) da += Math.PI*2;
+        spark.angle += da * 0.25;
       }
     }
+
+    spark.x += spark.vx;
+    spark.y += spark.vy;
+
+    // Mantener la chispa en un bus; empujar de vuelta si queda completamente fuera
+    const ncx = spark.x + pw/2, ncy = spark.y + ph/2;
+    const nowV = ncx >= vl && ncx <= vr;
+    const nowH = ncy >= ht && ncy <= hb;
+    if (!nowV && !nowH) {
+      spark.x -= spark.vx; spark.y -= spark.vy;
+      spark.vx *= -0.2; spark.vy *= -0.2;
+    } else {
+      if (nowV && !nowH) spark.x = Math.max(vl+2, Math.min(vr-pw-2, spark.x));
+      if (nowH && !nowV) spark.y = Math.max(ht+2, Math.min(hb-ph-2, spark.y));
+    }
+
+    // Punto al salir por cualquier borde de pantalla (con cooldown anti-multidisparo)
+    if (transmitCooldown <= 0) {
+      if      (spark.y + ph < -10) { spark.y = H * 0.82;  spark.vy = -spd*0.5; scoreTransmit(); }
+      else if (spark.y > H+10)     { spark.y = H * 0.18;  spark.vy =  spd*0.5; scoreTransmit(); }
+      else if (spark.x + pw < -10) { spark.x = W * 0.82;  spark.vx = -spd*0.5; scoreTransmit(); }
+      else if (spark.x > W+10)     { spark.x = W * 0.18;  spark.vx =  spd*0.5; scoreTransmit(); }
+    }
+
+    // Colisión con paquetes de datos
+    if (invincible <= 0) {
+      dataPackets.forEach(pkt => {
+        if (!pkt.alive) return;
+        if (rectsOverlap(spark, pkt, 0.7)) hitSpark(pkt);
+      });
+    }
+  }
+  // ── PAQUETES DE DATOS
+  spawnPackets();
+  dataPackets.forEach(pkt => {
+    pkt.x += pkt.vx;
+    pkt.y += pkt.vy;
+    if (pkt.x > W+80 || pkt.x < -80 || pkt.y > H+80 || pkt.y < -80) pkt.alive = false;
+  });
+  dataPackets = dataPackets.filter(p => p.alive);
+
+  // ── PARTÍCULAS
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    p.vy += 0.1; p.vx *= 0.96;
+    p.life -= p.decay;
+  });
+  particles = particles.filter(p => p.life > 0);
+
+  // ── POPUPS DE PUNTAJE
+  scorePopups.forEach(p => { p.y -= 1.5; p.life -= 0.03; });
+  scorePopups = scorePopups.filter(p => p.life > 0);
+
+  // ── ANIMACIÓN DE PULSO
+  spark.pulsePhase = (spark.pulsePhase + 0.4) % (Math.PI*2);
+}
+
+function rectsOverlap(a, b, shrink=1) {
+  const aw=a.w*shrink, ah=a.h*shrink;
+  const bw=b.w*shrink, bh=b.h*shrink;
+  const ax=a.x+(a.w-aw)/2, ay=a.y+(a.h-ah)/2;
+  const bx=b.x+(b.w-bw)/2, by=b.y+(b.h-bh)/2;
+  return ax<bx+bw && ax+aw>bx && ay<by+bh && ay+ah>by;
+}
+
+function scoreTransmit() {
+  transmitCooldown = 60;  // evita multidisparo por 1 segundo
+  transmissions++;
+  const pts = 10 * cycle;
+  score += pts;
+  if (score > hiScore) {
+    hiScore = score;
+    localStorage.setItem('cd_hi', hiScore);
+    document.getElementById('hi-el').textContent = hiScore;
+  }
+  document.getElementById('score-el').textContent = score;
+
+  // Sube de ciclo cada 5 transmisiones
+  const newCycle = Math.floor(transmissions / 5) + 1;
+  if (newCycle > cycle) {
+    cycle = newCycle;
+    document.getElementById('level-el').textContent = 'CICLO ' + cycle;
+    scorePopups.push({x:CX(), y:CY(), text:'CICLO '+cycle+'!', color:'#00e0ff', life:1, size:1.6});
+  } else {
+    scorePopups.push({x:spark.x+spark.w/2, y:spark.y, text:'+'+pts, color:'#4dff9e', life:1, size:1});
   }
 }
 
-function rectCollision(a, b) {
-  return !(a.x + a.w < b.x || a.x > b.x + b.w ||
-           a.y + a.h < b.y || a.y > b.y + b.h);
+function hitSpark(pkt) {
+  if (!spark.alive) return;
+  shakeTimer = 18;
+  spawnOverload(spark.x+spark.w/2, spark.y+spark.h/2);
+  charges--;
+  updateChargeUI();
+  if (charges <= 0) {
+    spark.alive = false;
+    setTimeout(showOverload, 1000);
+  } else {
+    invincible = 90;
+    spark.y   = H * 0.82;
+    spark.x   = CX() - LANE_W()*0.4;
+  }
 }
 
-function createExplosion(x, y) {
-  for (let i = 0; i < 12; i++) {
+function updateChargeUI() {
+  document.getElementById('lives-el').textContent =
+    '█'.repeat(Math.max(0,charges)) + '░'.repeat(Math.max(0,3-charges));
+}
+
+function spawnOverload(x, y) {
+  for (let i=0;i<28;i++) {
+    const a=Math.random()*Math.PI*2, s=2+Math.random()*6;
     particles.push({
-      x, y,
-      vx: (Math.random() - 0.5) * 6,
-      vy: (Math.random() - 0.5) * 6,
-      life: 25
+      x,y,vx:Math.cos(a)*s,vy:Math.sin(a)*s-3,
+      r:2+Math.random()*5,
+      col:['#00e0ff','#ff2fd6','#ffffff','#888888','#4dff9e'][Math.floor(Math.random()*5)],
+      life:1,decay:0.035+Math.random()*0.04,
     });
   }
 }
 
-function updateHUD() {
-  document.getElementById('hi-el').textContent = score;
-  document.getElementById('lives-el').innerHTML = '❤'.repeat(Math.max(0, lives));
-}
+// ════════════════════════════════════════════════════
+// DIBUJO
+// ════════════════════════════════════════════════════
+function drawCircuit() {
+  const vl=VBUS_L(), vr=VBUS_R(), ht=HBUS_T(), hb=HBUS_B();
+  const lw=LANE_W();
 
-function draw() {
-  ctx.fillStyle = '#05030a';
-  ctx.fillRect(0, 0, W, H);
+  // Componentes electrónicos (esquinas)
+  const componentColors = [
+    {base:'#3a2f18',top:'#4a3f28'}, // resistencia
+    {base:'#1a2838',top:'#283848'}, // capacitor
+    {base:'#0a0a0a',top:'#1a1a1a'}, // chip
+    {base:'#0f2a1a',top:'#1f3a2a'}, // diodo
+  ];
 
-  // Estrellas de fondo
-  ctx.fillStyle = '#ffffff';
-  for (let i = 0; i < 60; i++) {
-    const x = (i * 37) % W;
-    const y = (i * 53) % H;
-    ctx.fillRect(x, y, 1.5, 1.5);
+  ctx.fillStyle = componentColors[0].base; ctx.fillRect(0, 0, vl, ht);
+  ctx.fillStyle = componentColors[0].top;  ctx.fillRect(4, 4, vl-8, ht-8);
+  ctx.fillStyle = componentColors[1].base; ctx.fillRect(vr, 0, W-vr, ht);
+  ctx.fillStyle = componentColors[1].top;  ctx.fillRect(vr+4, 4, W-vr-8, ht-8);
+  ctx.fillStyle = componentColors[2].base; ctx.fillRect(0, hb, vl, H-hb);
+  ctx.fillStyle = componentColors[2].top;  ctx.fillRect(4, hb+4, vl-8, H-hb-8);
+  ctx.fillStyle = componentColors[3].base; ctx.fillRect(vr, hb, W-vr, H-hb);
+  ctx.fillStyle = componentColors[3].top;  ctx.fillRect(vr+4, hb+4, W-vr-8, H-hb-8);
+
+  drawComponents(0,0,vl,ht,0);
+  drawComponents(vr,0,W-vr,ht,1);
+  drawComponents(0,hb,vl,H-hb,2);
+  drawComponents(vr,hb,W-vr,H-hb,3);
+
+  // Pista (vertical)
+  ctx.fillStyle = '#0b1620';
+  ctx.fillRect(vl, 0, TRACK_W(), H);
+  // Pista (horizontal)
+  ctx.fillRect(0, ht, W, TRACK_W());
+  // Intersección
+  ctx.fillStyle = '#122230';
+  ctx.fillRect(vl, ht, TRACK_W(), TRACK_W());
+
+  // Textura sutil de la pista
+  ctx.fillStyle = 'rgba(0,224,255,0.05)';
+  for (let i=0;i<12;i++) {
+    const gx=vl+(i*7)%TRACK_W(), gy=(frameCount*0.5+i*31)%H;
+    ctx.fillRect(gx,gy,1,6);
   }
 
-  // Jugador (nave)
-  ctx.fillStyle = '#4488ff';
-  ctx.fillRect(player.x, player.y, player.w, player.h);
-  ctx.fillStyle = '#66aaff';
-  ctx.fillRect(player.x + 6, player.y - 8, player.w - 12, 10);
+  // TRAZAS — bus vertical
+  const dashLen = H*0.07, dashGap = H*0.05;
+  const vCenter = CX();
+  ctx.strokeStyle = '#00e0ff'; ctx.lineWidth = 2.5;
+  ctx.setLineDash([dashLen, dashGap]);
+  ctx.lineDashOffset = -(frameCount * 2) % (dashLen+dashGap);
+  ctx.beginPath(); ctx.moveTo(vCenter, 0); ctx.lineTo(vCenter, ht); ctx.stroke();
+  ctx.lineDashOffset = -(frameCount * 2) % (dashLen+dashGap);
+  ctx.beginPath(); ctx.moveTo(vCenter, hb); ctx.lineTo(vCenter, H); ctx.stroke();
 
-  // Balas
-  ctx.fillStyle = '#00ddff';
-  bullets.forEach(b => {
-    ctx.fillRect(b.x - 2, b.y, 4, 12);
-  });
+  // TRAZAS — bus horizontal
+  const hCenter = CY();
+  ctx.lineDashOffset = (frameCount * 2) % (dashLen+dashGap);
+  ctx.beginPath(); ctx.moveTo(0, hCenter); ctx.lineTo(vl, hCenter); ctx.stroke();
+  ctx.lineDashOffset = (frameCount * 2) % (dashLen+dashGap);
+  ctx.beginPath(); ctx.moveTo(vr, hCenter); ctx.lineTo(W, hCenter); ctx.stroke();
+  ctx.setLineDash([]);
 
-  // Enemigos (asteroides)
-  ctx.fillStyle = '#ff5050';
-  enemies.forEach(e => {
-    ctx.beginPath();
-    ctx.arc(e.x + e.w/2, e.y + e.h/2, e.w/2, 0, Math.PI * 2);
-    ctx.fill();
-  });
+  // PADS DE CONEXIÓN
+  ctx.fillStyle = 'rgba(0,224,255,0.18)';
+  const padW = lw * 0.18, pads = 4;
+  for (let i=0;i<pads;i++) {
+    ctx.fillRect(vl+lw*0.1+i*(padW+padW*0.6), ht-lw*0.35, padW, lw*0.28);
+  }
+  for (let i=0;i<pads;i++) {
+    ctx.fillRect(vl+lw*0.1+i*(padW+padW*0.6), hb+lw*0.07, padW, lw*0.28);
+  }
+  for (let i=0;i<pads;i++) {
+    ctx.fillRect(vl-lw*0.35, ht+lw*0.1+i*(padW+padW*0.6), lw*0.28, padW);
+  }
+  for (let i=0;i<pads;i++) {
+    ctx.fillRect(vr+lw*0.07, ht+lw*0.1+i*(padW+padW*0.6), lw*0.28, padW);
+  }
 
-  // Partículas
-  ctx.fillStyle = '#ffd700';
-  particles.forEach((p, i) => {
-    ctx.globalAlpha = p.life / 25;
-    ctx.fillRect(p.x, p.y, 3, 3);
-    p.x += p.vx;
-    p.y += p.vy;
-    p.life--;
-    if (p.life <= 0) particles.splice(i, 1);
+  // Bordes de la pista
+  ctx.strokeStyle = '#17303a'; ctx.lineWidth = 3;
+  ctx.setLineDash([]);
+  ctx.beginPath(); ctx.moveTo(vl,0); ctx.lineTo(vl,H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(vr,0); ctx.lineTo(vr,H); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,ht); ctx.lineTo(W,ht); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0,hb); ctx.lineTo(W,hb); ctx.stroke();
+
+  // Nodos de la intersección
+  ctx.fillStyle='#122230';
+  [[vl,ht],[vr,ht],[vl,hb],[vr,hb]].forEach(([jx,jy])=>{
+    ctx.beginPath(); ctx.arc(jx,jy,lw*0.12,0,Math.PI*2); ctx.fill();
   });
-  ctx.globalAlpha = 1;
 }
 
-function gameOver() {
-  gameRunning = false;
-  alert('¡Impacto! Has perdido todos los escudos.\nPuntuación: ' + score);
+function drawComponents(bx, by, bw, bh, idx) {
+  if (bw < 20 || bh < 20) return;
+  const winColors = ['rgba(0,224,255,0.6)','rgba(255,47,214,0.5)','rgba(77,255,158,0.4)','rgba(255,179,71,0.3)'];
+  const ww = bw*0.12, wh = bh*0.08;
+  const gx = bw*0.18, gy = bh*0.12;
+  for (let r=0;r<4;r++) for (let c=0;c<3;c++) {
+    const wx = bx+gx+c*(ww+gx*0.8);
+    const wy = by+gy+r*(wh+gy*0.9);
+    if (wx+ww>bx+bw-4||wy+wh>by+bh-4) continue;
+    const lit = ((idx*7+r*3+c*5+Math.floor(frameCount/60))%3)!==0;
+    ctx.fillStyle = lit ? winColors[(r+c+idx)%winColors.length] : 'rgba(0,0,0,0.3)';
+    ctx.fillRect(wx,wy,ww,wh);
+  }
+}
+
+function drawPacket(pkt, isSpark=false) {
+  const {x,y,w,h,color,angle,isProcess,isSignal} = pkt;
+  const inv = isSpark && invincible>0 && Math.floor(invincible/5)%2===0;
+  if (inv) { ctx.globalAlpha = 0.4; }
+
+  ctx.save();
+  ctx.translate(x+w/2, y+h/2);
+  if (angle) ctx.rotate(angle);
+
+  const hw=w/2, hh=h/2;
+
+  if (isSignal) {
+    // Señal rápida — forma simple vista desde arriba
+    ctx.fillStyle = '#888';
+    ctx.beginPath(); ctx.ellipse(0, 0, hw*0.5, hh, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = '#ddd';
+    ctx.beginPath(); ctx.ellipse(0, -hh*0.5, hw*0.4, hh*0.22, 0, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0,  hh*0.5, hw*0.4, hh*0.22, 0, 0, Math.PI*2); ctx.fill();
+    ctx.restore(); ctx.globalAlpha=1; return;
+  }
+
+  // Sombra
+  ctx.fillStyle='rgba(0,0,0,0.3)';
+  ctx.beginPath(); ctx.ellipse(3, 4, hw*0.85, hh*0.82, 0, 0, Math.PI*2); ctx.fill();
+
+  // Cuerpo del paquete
+  ctx.fillStyle = color.body;
+  ctx.beginPath();
+  ctx.roundRect(-hw, -hh, w, h, w*0.18);
+  ctx.fill();
+
+  // Panel inferior (más oscuro)
+  ctx.fillStyle = color.shadow;
+  ctx.beginPath();
+  ctx.roundRect(-hw, hh*0.1, w, hh*0.9, [0,0,w*0.18,w*0.18]);
+  ctx.fill();
+
+  // Encabezado / cabina
+  const roofInset = hw*0.28;
+  const roofTop   = isProcess ? -hh*0.25 : -hh*0.18;
+  const roofBot   = isProcess ?  hh*0.25 :  hh*0.32;
+  ctx.fillStyle = color.roof;
+  ctx.beginPath();
+  ctx.roundRect(-hw+roofInset, roofTop, w-roofInset*2, roofBot-roofTop, w*0.12);
+  ctx.fill();
+
+  // Brillo del encabezado
+  ctx.fillStyle = 'rgba(180,230,255,0.55)';
+  ctx.beginPath();
+  ctx.roundRect(-hw+roofInset+2, roofTop+2, (w-roofInset*2)*0.9, (roofBot-roofTop)*0.5, 3);
+  ctx.fill();
+
+  // Franja de brillo del cuerpo
+  ctx.fillStyle = color.shine;
+  ctx.globalAlpha = ctx.globalAlpha * 0.5;
+  ctx.beginPath();
+  ctx.roundRect(-hw+3, -hh*0.65, w*0.18, hh*1.1, 3);
+  ctx.fill();
+  ctx.globalAlpha = inv ? 0.4 : 1;
+
+  // Indicadores frontales
+  ctx.fillStyle = '#bfffff';
+  ctx.shadowColor='#00e0ff'; ctx.shadowBlur=6;
+  ctx.beginPath(); ctx.ellipse(-hw*0.45, -hh+3, hw*0.2, 3, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( hw*0.45, -hh+3, hw*0.2, 3, 0, 0, Math.PI*2); ctx.fill();
+  ctx.shadowBlur=0;
+
+  // Indicadores traseros
+  ctx.fillStyle = '#ff2fd6';
+  ctx.beginPath(); ctx.ellipse(-hw*0.4, hh-3, hw*0.18, 2.5, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.ellipse( hw*0.4, hh-3, hw*0.18, 2.5, 0, 0, Math.PI*2); ctx.fill();
+
+  // Nodos de anclaje
+  ctx.fillStyle='#222';
+  [[-hw, -hh*0.5],[hw, -hh*0.5],[-hw, hh*0.5],[hw, hh*0.5]].forEach(([wx,wy])=>{
+    ctx.beginPath(); ctx.ellipse(wx, wy, hw*0.22, hh*0.14, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#555';
+    ctx.beginPath(); ctx.ellipse(wx, wy, hw*0.12, hh*0.08, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle='#222';
+  });
+
+  // Extra de la chispa: destello de energía al acelerar
+  if (isSpark && surgeTimer>0) {
+    ctx.globalAlpha=surgeTimer/6*0.6;
+    ctx.fillStyle='rgba(0,224,255,0.8)';
+    ctx.beginPath(); ctx.arc(-hw*0.2, hh+5, 4, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc( hw*0.2, hh+5, 3, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha=1;
+  }
+
+  ctx.restore();
+  if (inv) ctx.globalAlpha = 1;
+}
+
+function drawParticles() {
+  particles.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle   = p.col;
+    ctx.shadowColor = p.col; ctx.shadowBlur = 6;
+    ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha=1; ctx.shadowBlur=0;
+}
+
+function drawScorePopups() {
+  scorePopups.forEach(p => {
+    ctx.globalAlpha = p.life;
+    ctx.fillStyle   = p.color;
+    ctx.shadowColor = p.color; ctx.shadowBlur=8;
+    ctx.font = `bold ${Math.round(W*0.06*p.size)}px 'Courier New', monospace`;
+    ctx.textAlign='center';
+    ctx.fillText(p.text, p.x, p.y);
+    ctx.shadowBlur=0;
+  });
+  ctx.globalAlpha=1; ctx.textAlign='left';
+}
+
+function drawHUD() {
+  // Barra de progreso de ciclo
+  const cyclePct = (transmissions % 5) / 5;
+  ctx.fillStyle='rgba(0,0,0,0.4)';
+  ctx.fillRect(0,0,W,5);
+  ctx.fillStyle='#00e0ff';
+  ctx.shadowColor='#00e0ff'; ctx.shadowBlur=6;
+  ctx.fillRect(0,0,W*cyclePct,5);
+  ctx.shadowBlur=0;
+}
+
+function drawScene() {
+  // Sacudida de pantalla
+  if (shakeTimer>0) {
+    const shk=(shakeTimer/18)*5;
+    ctx.save();
+    ctx.translate((Math.random()-0.5)*shk,(Math.random()-0.5)*shk);
+  }
+
+  ctx.clearRect(0,0,W,H);
+  drawCircuit();
+  dataPackets.forEach(pkt=>drawPacket(pkt,false));
+  if (spark.alive) drawPacket(spark, true);
+  drawParticles();
+  drawScorePopups();
+  drawHUD();
+
+  if (shakeTimer>0) ctx.restore();
+}
+
+// ════════════════════════════════════════════════════
+// LOOP
+// ════════════════════════════════════════════════════
+function gameLoop() {
+  update();
+  drawScene();
+  animId = requestAnimationFrame(gameLoop);
+}
+
+// ════════════════════════════════════════════════════
+// INICIO / FIN
+// ════════════════════════════════════════════════════
+function startGame() {
+  state='playing'; score=0; transmissions=0; charges=3; cycle=1;
+  frameCount=0; shakeTimer=0; invincible=0; surgeTimer=0; transmitCooldown=0;
+  dataPackets=[]; particles=[]; scorePopups=[];
+  keys={};
+  document.getElementById('score-el').textContent='0';
+  document.getElementById('level-el').textContent='CICLO 1';
+  document.getElementById('overlay').classList.add('hidden');
+  document.getElementById('ov-stats').classList.remove('show');
+  updateChargeUI();
+  initSpark();
+  if (!animId) gameLoop();
+}
+
+function showOverload() {
+  state='dead';
   document.getElementById('overlay').classList.remove('hidden');
-  document.getElementById('overlay').innerHTML = `
-    <div class="ov-title">¡IMPACTO!</div>
-    <div class="ov-sub">La nebulosa te venció</div>
-    <button class="ov-btn" onclick="location.reload()">REINTENTAR</button>
-  `;
+  document.getElementById('ov-title').textContent  = '¡SOBRECARGA!';
+  document.getElementById('ov-sub').textContent    = 'EL RUIDO GANÓ · REINTENTA';
+  document.getElementById('ov-stats').classList.add('show');
+  document.getElementById('ov-score').textContent  = score;
+  document.getElementById('ov-crosses').textContent= transmissions;
+  document.querySelector('.ov-btn').textContent     = '↺ REINICIAR';
 }
 
-// Iniciar con tecla Enter también
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' && document.getElementById('overlay').style.display !== 'none') {
-    startGame();
-  }
+// ════════════════════════════════════════════════════
+// ENTRADA
+// ════════════════════════════════════════════════════
+function pressKey(k) {
+  keys[k]=true;
+  const m={left:'btn-left',right:'btn-right',up:'btn-up',down:'btn-down'};
+  const el=document.getElementById(m[k]); if(el) el.classList.add('pressed');
+}
+function releaseKey(k) {
+  keys[k]=false;
+  const m={left:'btn-left',right:'btn-right',up:'btn-up',down:'btn-down'};
+  const el=document.getElementById(m[k]); if(el) el.classList.remove('pressed');
+}
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='ArrowLeft')  pressKey('left');
+  if(e.key==='ArrowRight') pressKey('right');
+  if(e.key==='ArrowUp')    { e.preventDefault(); pressKey('up'); }
+  if(e.key==='ArrowDown')  { e.preventDefault(); pressKey('down'); }
+});
+document.addEventListener('keyup',e=>{
+  if(e.key==='ArrowLeft')  releaseKey('left');
+  if(e.key==='ArrowRight') releaseKey('right');
+  if(e.key==='ArrowUp')    releaseKey('up');
+  if(e.key==='ArrowDown')  releaseKey('down');
 });
 
-console.log('%c[Nebulosa Rush] Juego cargado correctamente. Listo para jugar.', 'color:#00ddff');
+gameLoop();
 </script>
 </body>
 </html>
